@@ -252,3 +252,119 @@ class CalculatorTest {
     }
 }
 ```
+
+## 5강. 사칙연산 계산기의 나눗템 테스트 작성
+```
+fun main() {
+    val calculatorTest = CalculatorTest()
+    calculatorTest.divideExceptionTest()
+}
+
+class CalculatorTest {
+    fun divideExceptionTest() {
+        // given
+        val calculator = Calculator(5)
+
+        // when
+        try{
+            calculator.divide(0)
+
+        }catch (e: IllegalArgumentException) {
+            if(e.message != "0으로 나눌 수 없습니다.") {
+                throw IllegalStateException()
+            }
+            // 테스트 성공!!
+            return
+        } catch (e: Exception) {
+            throw IllegalStateException()
+        }
+        throw java.lang.IllegalStateException("기대하는 예외가 발생하지 않았습니다.")
+    }
+}
+```
+### 수동으로 만든 테스트 코드의 단점
+1. 테스트 클래스와 메소드가 생길 때마다 메인 메소드에 수동으로 코드를 작성해주어야 하고,
+   메인 메소드거 어주 커진다. 테스트 메소드를 개별적으로 실행하기도 어렵다.
+2. 테소트가 실패한 경우 무엇을 기대하였고, 어떤 잘못된 값이 들어와 실패했는지 알려주지 않는다. 
+   예외를 던지거나 try catch를 사용해야 하는 등 직접 구현해야 할 부분이 많아 불편하다.
+3. 테스트 메소드 별로 공통적으로 처리해야 하는 기능이 있다면, 메소드마다 중복이 생긴다.
+
+## 6강. Junit5 사용법과 테스트 코드 리팩토링
+### Junit5에서 사용되는 5가지 어노테이션
+- @Test: 테스트 메소드를 지정한다. 테스트 메소드를 실행하는 과정에서 오류가 없으면 성공이다.
+- @BeforeEach : 각 테스트 메소드가 수행되기 전에 실행되는 메소드를 지정한다.
+- @AfterEach: 각 테스트가 수행된 후에 실행되는 메소드를 지정한다.
+- @BeforeAll: 모든 테스트를 수행하기 전에 최초 1회 수행되는 메소드를 지정한다.
+- @AfterAll: 모든 테스트를 수행한 후 최후 1회 수행되는 메소드를 지정한다.
+
+```
+import org.assertj.core.api.Assertions.assertThat
+import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.assertThrows
+
+class JunitCalculatorTest {
+
+    @Test
+    fun addTest() {
+        // given
+        val calculator = Calculator(5)
+
+        // when
+        calculator.add(3)
+
+        // then
+        assertThat(calculator.number).isEqualTo(8)
+    }
+
+    @Test
+    fun minusTest() {
+        // given
+        val calculator = Calculator(5)
+
+        // when
+        calculator.minus(3)
+
+        // then
+        assertThat(calculator.number).isEqualTo(2)
+    }
+
+    @Test
+    fun multiplyTest() {
+        // given
+        val calculator = Calculator(5)
+
+        // when
+        calculator.multiply(3)
+
+        // then
+        assertThat(calculator.number).isEqualTo(15)
+    }
+
+    @Test
+    fun divideTest() {
+        // given
+        val calculator = Calculator(5)
+
+        // when
+        calculator.divide(2)
+
+        // then
+        assertThat(calculator.number).isEqualTo(2)
+    }
+
+    @Test
+    fun divideExceptionTest() {
+        // given
+        val calculator = Calculator(5)
+
+        // when then
+        val message = assertThrows<IllegalArgumentException> {
+            calculator.divide(0)
+        }.apply {
+            assertThat(message).isEqualTo("0으로 나눌 수 없습니다.")    
+        }
+        
+
+    }
+}
+```
