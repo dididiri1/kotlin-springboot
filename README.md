@@ -360,11 +360,96 @@ class JunitCalculatorTest {
         // when then
         val message = assertThrows<IllegalArgumentException> {
             calculator.divide(0)
+        }.message 
+        assertThat(message).isEqualTo("0으로 나눌 수 없습니다.")
+    }
+}
+```
+<자바 개발자를 위한 코틀린 입문> 강의에서 다루었던 scope function을 활용하면 예외에 대한
+메세지 검증을 리펙토링 할수도 있다.
+```
+@Test
+    fun divideExceptionTest() {
+        // given
+        val calculator = Calculator(5)
+
+        // when then
+        val message = assertThrows<IllegalArgumentException> {
+            calculator.divide(0)
         }.apply {
             assertThat(message).isEqualTo("0으로 나눌 수 없습니다.")    
         }
         
 
     }
+```
+
+## 7강. Junit5으로 Spring Boot 테스트하기
+### Spring Boot 각 계층을 테스트 하는 방법
+- 각 계층은 테스트 하는 방법이 다릅니다!
+
+![](https://github.com/dididiri1/kotlin-springboot/blob/main/study/images/07_01.png?raw=true)
+
+![](https://github.com/dididiri1/kotlin-springboot/blob/main/study/images/07_02.png?raw=true)
+
+### 어떤 계층을 테스트 해야 할까?!
+- 당연히 최선은 모든 계층에 대해 많은 경우를 검증하는 것!
+- 하지만 현실적으로 코딩 시간을 고려해 딱 1개 계층만 테스트 한다면  
+  일반적인 상황에서는, 개인적으로 Service 계층 테스트를 선호한다.
+- Service 계층을 테스트 함으로써 A를 보냈을 떄 B가 잘 나오는지, 또는 원하는 로직을
+  잘 수행하는지 검증할 수 있기 때문이다.
+
+```
+@SpringBootTest
+class UserServiceTest @Autowired constructor(
+
+    private val userRepository: UserRepository,
+    private val userService: UserService,
+) {
+
+    @Test
+    fun saveUserTest() {
+        // given
+        val request = UserCreateRequest("홍길동", null)
+
+        // when
+        userService.saveUser(request)
+
+        // then
+        val results = userRepository.findAll()
+        assertThat(results).hasSize(1)
+        assertThat(results[0].name).isEqualTo("홍길동")
+        assertThat(results[0].age).isNull()
+    }
+
 }
 ```
+```
+  ...
+  
+  @NotNull
+  public String getName() {
+    return name;
+  }
+
+  @Nullable
+  public Integer getAge() {
+    return age;
+  }
+  
+  ...
+  
+```
+assertThat().isNull() 이라는 새로운 단언문을 사용한다.
+위의 테스트 코드를 실행보면 users[0].age에서 에러가 나게 된다,
+
+### 그 이유는 다음과 같다.
+- User getAge()가 Java 타입으로 Integer라고 되어 있는데 (즉, 플랫폼 타입이다)
+- Kotlin 입장에서는 int가 nullable인지 non-nullalbe인지 몰라 users[0].age라고만  
+  타이핑한 경우 null이 아닌 뱐수에 age를 담으려고 한다.
+- 하지만 실제 값은 null이었기에 때문에 null을 non-null 변수에 넣으려다 에러가 난 것이다.
+
+이를 해결하기 위해서는 User 테이블의 getter 2개에 Annotation을 붙여주면 된다.
+name은 null이 불가능하니 @NotNull을 붙여주고, age는 null이 가능하니 @Nullable을 붙여주자.
+
+org.jetbrains.annotations.NotNull , org.jetbrains.annotations.Nullable을 활용하면 된다. 
