@@ -453,3 +453,109 @@ assertThat().isNull() 이라는 새로운 단언문을 사용한다.
 name은 null이 불가능하니 @NotNull을 붙여주고, age는 null이 가능하니 @Nullable을 붙여주자.
 
 org.jetbrains.annotations.NotNull , org.jetbrains.annotations.Nullable을 활용하면 된다. 
+
+## 8강. 유저관련기능테스트작성하기
+
+![](https://github.com/dididiri1/kotlin-springboot/blob/main/study/images/08_00.png?raw=true)
+
+![](https://github.com/dididiri1/kotlin-springboot/blob/main/study/images/08_01.png?raw=true)
+
+![](https://github.com/dididiri1/kotlin-springboot/blob/main/study/images/08_02.png?raw=true)
+
+![](https://github.com/dididiri1/kotlin-springboot/blob/main/study/images/08_03.png?raw=true)
+
+- 조회 테스트가 먼저 수행되더라도, 에러가 발생할 수 있다.
+- 테스트가 끝나면 공유자 원인DB를 깨끗하게 해주자!
+```
+@AfterEach
+fun clean() {
+  userRepository.deleteAll()  
+}
+```
+
+### Kotlin
+```
+import com.group.libraryapp.domain.user.User
+import com.group.libraryapp.domain.user.UserRepository
+import com.group.libraryapp.dto.user.request.UserCreateRequest
+import com.group.libraryapp.dto.user.request.UserUpdateRequest
+import org.assertj.core.api.Assertions.assertThat
+import org.junit.jupiter.api.AfterEach
+import org.junit.jupiter.api.DisplayName
+import org.junit.jupiter.api.Test
+import org.springframework.beans.factory.annotation.Autowired
+import org.springframework.boot.test.context.SpringBootTest
+
+@SpringBootTest
+class UserServiceTest @Autowired constructor(
+
+    private val userRepository: UserRepository,
+    private val userService: UserService,
+) {
+
+    @AfterEach
+    fun clean() {
+        userRepository.deleteAll()
+    }
+
+    @DisplayName("유저 저장이 정상 동작한다.")
+    @Test
+    fun saveUserTest() {
+        // given
+        val request = UserCreateRequest("홍길동", null)
+
+        // when
+        userService.saveUser(request)
+
+        // then
+        val results = userRepository.findAll()
+        assertThat(results).hasSize(1)
+        assertThat(results[0].name).isEqualTo("홍길동")
+        assertThat(results[0].age).isNull()
+
+    }
+
+    @Test
+    fun getUsersTest() {
+        // given
+        userRepository.saveAll(listOf(
+            User("A", 20),
+            User("B", null)
+        ))
+
+        // when
+        val results = userService.getUsers()
+
+        // then
+        assertThat(results).hasSize(2)
+        assertThat(results).extracting("name").containsExactlyInAnyOrder("A", "B")
+        assertThat(results).extracting("age").containsExactlyInAnyOrder(20, null)
+    }
+
+    @Test
+    fun updateUserTest() {
+        // given
+        val saveUser = userRepository.save(User("A", null))
+        val request = UserUpdateRequest(saveUser.id, "B")
+
+        // when
+        userService.updateUserName(request)
+
+        // then
+        val result = userRepository.findAll()[0]
+        assertThat(result.name).isEqualTo("B")
+    }
+
+    @Test
+    fun deleteUserTest() {
+        // given
+        userRepository.save(User("A", null))
+
+        // when
+        userService.deleteUser("A")
+
+        // then
+        assertThat(userRepository.findAll()).isEmpty()
+    }
+}
+```
