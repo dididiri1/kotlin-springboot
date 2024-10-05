@@ -666,3 +666,36 @@ class BookServiceTest @Autowired constructor(
     }
 }
 ```
+
+## 12강. 도메인 계층을 Kotlin으로 변경하기 - Book.java
+
+#### 의존성 주입
+```
+implementation 'org.jetbrains.kotlin:kotlin-reflect:1.6.21'
+```
+
+#### Book.kt
+```
+import java.lang.IllegalArgumentException
+import javax.persistence.Entity
+import javax.persistence.GeneratedValue
+import javax.persistence.GenerationType
+import javax.persistence.Id
+import javax.persistence.Table
+
+@Entity
+class Book(
+    val name: String,
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    val id: Long? = null,
+) {
+
+    init {
+        if (name.isBlank()) {
+            throw IllegalArgumentException("이름은 비어 있을 수 없습니다")
+        }
+    }
+}
+```
