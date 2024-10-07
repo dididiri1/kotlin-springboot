@@ -778,3 +778,109 @@ class User(
 }
 ```
 
+## 14강. Kotlin과 JPA를 함께 사용할 때 이야기거리 3가지
+
+
+1. setter에 관한 이야기
+- setter 대신 좋은 이름의 함수를 사용하는 것이 훨씬 clean하다!
+- 하지만 name에 대한 setter는 public 이기 때문에 유저 이름 업데이트 기능에서 setter를 사용할 수도 있다.
+- 코드 상 setter가 열려있어서 사용할수도 있다는 것이 불편하다.
+- public getter는 필요하기 때문에 setter만 private하게 만드는 것이 최선이다!
+
+```
+class User(
+  private val _name: String,
+) {
+  val name: String
+     get() = this._name
+}       
+```
+#### 방법 1. backing property 사용하기 
+
+```
+class User(
+  name: String
+) {
+  val name = name
+     private set 
+}       
+```
+#### 방법 2. custom setter 이용하기  
+
+> 정리: 하지만 두 방법 모두 프로퍼티가 많아지면 번거롭다!
+> 때문에 개인적으로 setter를 열어는 두지만 사용하지 않는 방법을 선호!
+> 다행히 현재 팀에서도 setter를 사용하면 안된다는 사실을 모든 개발자 분들이 체득하고 있다.
+> Trade-Off의 영역, 팀 컨벤션을 잘 맞추면 되지 않을까!
+
+
+### 2. 생성자 안의 프로퍼티. 클래스 body 안의 프로퍼티
+
+다시 User 클래스를 보자. user 클래스 주생성자 안에 있는 userLoanHistories와 id는 꼭  
+주 생성자 안에 있을 필요가 없다. 아래와 같이 코드가 바뀔 수 있는 것이다
+
+
+```
+@Entity 
+class User( 
+  var name: String, 
+  val age: Int?, 
+) { 
+
+  @OneToMany(mappedBy = "user", cascade = [CascadeType.ALL], orphanRemoval = true) 
+  val userLoanHistories: MutableList<UserLoanHistory> = mutableListOf(),
+  
+  @Id 
+  @GeneratedValue(strategy = GenerationType.IDENTITY) 
+  val id: Long? = null, 
+  
+  fun updateName(name: String) { 
+    this.name = name 
+  } 
+   
+  fun loanBook(book: Book) { 
+    this.userLoanHistories.add(UserLoanHistory(this, book.name)) 
+  } 
+  
+  fun returnBook(bookName: String) { 
+    this.userLoanHistories.first {history -> history.bookName == bookName }.doReturn() 
+   
+  } 
+}
+  
+```
+
+그렇다. 위 코드도 잘 동작한다. 그렇다면 어떻케 해야 더 좋을까?
+개인적으로는 큰 상관이 없다고 생각한다. 테스트를 하기 위한 객체를 만들어 줄때도 정적  
+팩토리 메소드를 사용하다 보니 프로퍼티가 안에 있건, 밖에 있건 두 경우 모두 적절히 대응 할 수 있다.
+하지만 명확한 가이드가 있는 것은 함계 개발을 할 때에 중요하므로
+1. 모든 프로퍼티를 생성자에 넣거나
+2. 프로퍼티를 생성자 혹은 클래스 body 안에 구분해서 넣을 때 명확한 기준이 있거나 해야한다고 생각한다.
+
+
+### 3. JPA와 data class
+- Entity는 data class를 피하는 것이 좋다. 
+- 그 이유는 equals, hashCode, toString 등의 함수를 자동으로 만들어준다. 사실 원래 세 함수는 JPA Entity와
+  그렇케 궁합이 좋치 못하다. 연관관계 상황에서 문제가 될 수 있는 경우들이 존재하기 떄문이다
+  예를 들어, 현제 프로젝트에 있는 User와 UserLoanHistory를 생각해보자 
+
+![](https://github.com/dididiri1/kotlin-springboot/blob/main/study/images/14_01.png?raw=true)
+
+1:N 연관계를 맺고 있는 상황에서 User쪽에 equals()가 호출된다면 User 는 본인과 관계를 맺고 있는 UserLoanHistory의  
+equals()를 호출하게 되고, 다시 UserLoanHistory는 본인과 관계를 맺고 있는 User의 equals()를 호출하게 된다.
+때문에 JPA Entitiy는 data class를 피하는 것이 좋다.
+
+
+
+마지막으로 작은 TIP 하나를 더 공유하자며 이 TIP 꼭 JPA와 관련된 것은 아니지만, 현재 Kotlin Class가 Domain만 있으니
+이 단계를 말하고자 한다.
+- Entityu (class) 가 생성되는 로직을 찾고 싶은 경우, constructor 지시어를 명시적으로 작성하고 추적하면 훨씬 편하다.
+
+![](https://github.com/dididiri1/kotlin-springboot/blob/main/study/images/14_02.png?raw=true)
+
+이제 Kotlin으로 변경된 도메인 객체들을 남겨두고, Repository로 넘어가보자!
+
+
+
+
+
+
