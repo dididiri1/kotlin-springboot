@@ -916,7 +916,109 @@ interface UserLoanHistoryRepository : JpaRepository<UserLoanHistory, Long>{
 }  
 ```
 
+## 16강. 서비스 계층을 Kotlin으로 변경하기 - UserService.java
 
+```
+plugins {
+    id 'org.springframework.boot' version '2.6.8'
+    id 'io.spring.dependency-management' version '1.0.11.RELEASE'
+    id 'java'
+    id 'org.jetbrains.kotlin.jvm' version '1.6.21'
+    id 'org.jetbrains.kotlin.plugin.jpa' version '1.6.21'
+    id 'org.jetbrains.kotlin.plugin.spring' version '1.6.21' / 추가
+}
+```
+#### UserService.java
+```
+import com.group.libraryapp.domain.user.User;
+import com.group.libraryapp.domain.user.UserRepository;
+import com.group.libraryapp.dto.user.request.UserCreateRequest;
+import com.group.libraryapp.dto.user.request.UserUpdateRequest;
+import com.group.libraryapp.dto.user.response.UserResponse;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.util.Collections;
+import java.util.List;
+import java.util.stream.Collectors;
+
+@Service
+public class UserService {
+
+  private final UserRepository userRepository;
+
+  public UserService(UserRepository userRepository) {
+    this.userRepository = userRepository;
+  }
+
+  @Transactional
+  public void saveUser(UserCreateRequest request) {
+    User newUser = new User(request.getName(), request.getAge(), Collections.emptyList(), null);
+    userRepository.save(newUser);
+  }
+
+  @Transactional(readOnly = true)
+  public List<UserResponse> getUsers() {
+    return userRepository.findAll().stream()
+        .map(UserResponse::new)
+        .collect(Collectors.toList());
+  }
+
+  @Transactional
+  public void updateUserName(UserUpdateRequest request) {
+    User user = userRepository.findById(request.getId()).orElseThrow(IllegalArgumentException::new);
+    user.updateName(request.getName());
+  }
+
+  @Transactional
+  public void deleteUser(String name) {
+    User user = userRepository.findByName(name).orElseThrow(IllegalArgumentException::new);
+    userRepository.delete(user);
+  }
+
+}
+```
+#### Kotlin
+```
+import com.group.libraryapp.domain.user.User
+import com.group.libraryapp.domain.user.UserRepository
+import com.group.libraryapp.dto.user.request.UserCreateRequest
+import com.group.libraryapp.dto.user.request.UserUpdateRequest
+import com.group.libraryapp.dto.user.response.UserResponse
+import org.springframework.stereotype.Service
+import org.springframework.transaction.annotation.Transactional
+
+@Service
+class UserService(
+    private val userRepository: UserRepository,
+) {
+
+    @Transactional
+    fun saveUser(request: UserCreateRequest) {
+        val newUser = User(request.name, request.age)
+        userRepository.save(newUser)
+    }
+
+    @Transactional(readOnly = true)
+    fun getUsers(): List<UserResponse> {
+        return userRepository.findAll()
+            .map { user -> UserResponse(user) }
+    }
+
+    @Transactional
+    fun updateUserName(request: UserUpdateRequest) {
+        val user = userRepository.findById(request.id).orElseThrow(::IllegalArgumentException)
+        user.updateName(request.name)
+    }
+
+    @Transactional
+    fun deleteUser(name : String) {
+        val user = userRepository.findByName(name).orElseThrow(::IllegalArgumentException)
+        userRepository.delete(user)
+    }
+
+}
+```
 
 
 
