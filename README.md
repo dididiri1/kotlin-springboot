@@ -880,6 +880,42 @@ equals()를 호출하게 되고, 다시 UserLoanHistory는 본인과 관계를 �
 이제 Kotlin으로 변경된 도메인 객체들을 남겨두고, Repository로 넘어가보자!
 
 
+## 15강. 리포지토리를 Kotlin으로 변경하기
+
+
+#### Kotlin
+```
+import org.springframework.data.jpa.repository.JpaRepository
+import java.util.Optional
+
+interface BookRepository : JpaRepository<Book, Long> {
+
+    fun findByName(bookName: String): Optional<Book>
+}
+  
+```
+
+#### Kotlin
+```
+import org.springframework.data.jpa.repository.JpaRepository
+import java.util.Optional
+
+interface UserRepository : JpaRepository<User, Long> {
+
+    fun findByName(name: String) : Optional<User>
+}
+```
+
+#### Kotlin
+```
+import org.springframework.data.jpa.repository.JpaRepository
+
+interface UserLoanHistoryRepository : JpaRepository<UserLoanHistory, Long>{
+
+    fun findByBookNameAndIsReturn(bookName: String, isReturn: Boolean) : UserLoanHistory?
+}  
+```
+
 
 
 
