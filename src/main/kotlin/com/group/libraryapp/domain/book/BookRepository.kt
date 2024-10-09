@@ -5,5 +5,5 @@ import java.util.Optional
 
 interface BookRepository : JpaRepository<Book, Long> {
 
-    fun findByName(bookName: String): Optional<Book>
+    fun findByName(bookName: String): Book?
 }

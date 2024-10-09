@@ -1020,5 +1020,153 @@ class UserService(
 }
 ```
 
+## 17강. BookService.java를 Kotlin으로 변경하고 Optional 제거하기
+
+#### Kotlin
+```
+package com.group.libraryapp.service.book
+
+import com.group.libraryapp.domain.book.Book
+import com.group.libraryapp.domain.book.BookRepository
+import com.group.libraryapp.domain.user.UserRepository
+import com.group.libraryapp.domain.user.loanhistory.UserLoanHistoryRepository
+import com.group.libraryapp.dto.book.request.BookLoanRequest
+import com.group.libraryapp.dto.book.request.BookRequest
+import com.group.libraryapp.dto.book.request.BookReturnRequest
+import org.springframework.stereotype.Service
+import org.springframework.transaction.annotation.Transactional
+
+@Service
+class BookService(
+    private val bookRepository: BookRepository,
+    private val userRepository: UserRepository,
+    private val userLoanHistoryRepository: UserLoanHistoryRepository,
+
+) {
+
+    @Transactional
+    fun saveBook(request: BookRequest) {
+        val book = Book(request.name)
+        bookRepository.save(book)
+    }
+
+    @Transactional
+    fun loanBook(request: BookLoanRequest) {
+        val book = bookRepository.findByName(request.bookName).orElseThrow(::IllegalArgumentException)
+        if (userLoanHistoryRepository.findByBookNameAndIsReturn(request.bookName, false) != null) {
+            throw java.lang.IllegalArgumentException("진작 대출되어 있는 책입니다.")
+        }
+
+        val user = userRepository.findByName(request.userName).orElseThrow(::IllegalArgumentException)
+        user.loanBook(book)
+
+    }
+
+    @Transactional
+    fun returnBook(request: BookReturnRequest) {
+        val user= userRepository.findByName(request.userName).orElseThrow(::IllegalArgumentException)
+        user.returnBook(request.bookName)
+
+    }
+}
+```
+
+JDK 8의 등장한 옵셔널은 어떤 값이 null 될 수 있는지 없는지를 잘 나타내주기 위해 생겨났다.
+Kotlin에서는 언저 자체 타입 시스템이 물음표를 통해서 어떤 값이 null인지 아닌지 잘 알려주기 떄문에 필요가 없다.
+
+```
+import org.springframework.data.jpa.repository.JpaRepository
+import java.util.Optional
+
+interface UserRepository : JpaRepository<User, Long> {
+
+    //fun findByName(name: String) : Optional<User>
+    
+    fun findByName(name: String) : User?
+}
+```
+
+```
+    ```
+    
+    @Transactional
+    fun deleteUser(name : String) {
+        val user = userRepository.findByName(name).orElseThrow(::IllegalArgumentException)
+        userRepository.delete(user)
+    }
+    
+    
+    @Transactional
+    fun deleteUser(name : String) {
+        val user = userRepository.findByName(name) ?: throw java.lang.IllegalArgumentException()
+        userRepository.delete(user)
+    }
+    
+    ```
+    
+```
+
+### ?: throw IllegalArgumentException() 반복 코드 발생 - 리팩토링
+
+#### ExceptionUtils.kt
+```
+import java.lang.IllegalArgumentException
+
+fun fail() : Nothing {
+    throw IllegalArgumentException()
+}
+```
+```
+    ```
+    
+    @Transactional
+    fun returnBook(request: BookReturnRequest) {
+        val user= userRepository.findByName(request.userName) ?: fail()
+        user.returnBook(request.bookName)
+
+    }
+    
+    ```
+```
+
+#### 확잘 함수를 통해 Optional을 제어할 수 있음
+
+![](https://github.com/dididiri1/kotlin-springboot/blob/main/study/images/17_01.png?raw=true)
+
+#### CrudRepositoryExtensions.kt
+```
+fun <T, ID> CrudRepository<T, ID>.findByIdOrNull(id: ID): T? = findById(id).orElse(null)
+```
+
+```
+    @Transactional
+    fun updateUserName(request: UserUpdateRequest) {
+        val user = userRepository.findByIdOrNull(request.id) ?: fail()
+        user.updateName(request.name)
+    }
+```
+
+### 확장함수 직접 만들
+```
+import org.springframework.data.repository.CrudRepository
+import org.springframework.data.repository.findByIdOrNull
+import java.lang.IllegalArgumentException
+
+fun fail() : Nothing {
+    throw IllegalArgumentException()
+}
+
+fun <T, ID> CrudRepository<T, ID>.findByIdOrThrow(id: ID): T {
+  return this.findByIdOrNull(id) ?: fail()
+}
+```
+
+```
+    @Transactional
+    fun updateUserName(request: UserUpdateRequest) {
+        val user = userRepository.findByIdOrThrow(request.id)
+        user.updateName(request.name)
+    }
+```
 
 
