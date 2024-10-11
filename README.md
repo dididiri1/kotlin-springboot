@@ -1169,4 +1169,68 @@ fun <T, ID> CrudRepository<T, ID>.findByIdOrThrow(id: ID): T {
     }
 ```
 
+## 18강. DTO를 Kotlin으로 변경하기
+![](https://github.com/dididiri1/kotlin-springboot/blob/main/study/images/18_01.png?raw=true)
+
+#### Kotlin 
+```
+import com.group.libraryapp.domain.user.User
+
+class UserResponse(
+    user: User
+) {
+    val id: Long
+    val name: String
+    val age: Int?
+
+    init {
+        id = user.id!!
+        name = user.name
+        age = user.age
+    }
+}
+
+```
+
+#### Kotlin - init에서 부생성자로 리팩토링
+```
+import com.group.libraryapp.domain.user.User
+
+class UserResponse(
+    val id: Long,
+    val name: String,
+    val age: Int?,
+) {
+
+    constructor(user: User) : this(
+        id = user.id!!,
+        name = user . name,
+        age = user.age
+    )
+}
+```
+
+#### Kotlin - 정적팩토리 메소드 리팩토링
+```
+import com.group.libraryapp.domain.user.User
+
+data class UserResponse( // dto 전체적으로 data 추가
+    val id: Long,
+    val name: String,
+    val age: Int?,
+) {
+
+    companion object {
+        fun of(user: User): UserResponse {
+            return UserResponse(
+                id = user.id!!,
+                name = user . name,
+                age = user.age)
+        }
+    }
+}
+```
+> 데이터 트랜스퍼 오브젝트는 즉 DTO는 상황에 따라서 equals나 hashcode 혹은 
+> toString 등을 디버깅 과정이나 테스트 과정에서 사용할 수도 있다.
+> 그래서 DTO를 항상 그 취지에 맞게 data 클래스로 만들어주는 편이다. 
 
