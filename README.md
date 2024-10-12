@@ -1478,3 +1478,78 @@ class Book(
     }
 }
 ```
+
+## 22강. Enum Class를 활용해 책의 분야 리팩토링 하기
+
+### type: String의 단점 정리
+1. 현재 검증이 되고 있지 않으며, 검증 코드를 추가 작성하기 번거롭다.
+2. 코드만 보았을 때 어떤 값이 DB에 있는지 알 수 없다.
+3. type과 관련한 새로운 로직을 작성할 때 번거롭다.
+
+### 이러한 단점을 어떻게 하결할수 있을까?!
+- Enum Class를 활용하자!
+
+```
+enum class BookType {
+
+    COMPUTER,
+    ECONOMY,
+    SOCIETY,
+    LANGUAGE,
+    SCIENCE,
+    
+}
+```
+
+```
+
+import java.lang.IllegalArgumentException
+import javax.persistence.Entity
+import javax.persistence.GeneratedValue
+import javax.persistence.GenerationType
+import javax.persistence.Id
+import javax.persistence.Table
+
+@Entity
+class Book(
+    val name: String,
+
+    val type: BookType,
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    val id: Long? = null,
+) {
+
+    init {
+        if (name.isBlank()) {
+            throw IllegalArgumentException("이름은 비어 있을 수 없습니다")
+        }
+    }
+
+    companion object {
+        fun fixture(
+            name: String = "책 이름",
+            type: BookType = BookType.COMPUTER,
+            id: Long? = null,
+        ): Book {
+            return Book(
+                name = name,
+                type = type,
+                id = id,
+            )
+        }
+    }
+}
+```
+
+### 위에 Enum은 숫자로 DB에 저장되는 문제가 있다.
+1. 기존 Enum의 순서가 바뀌면 아주 큰일이 난다.
+2. 기존 Enum 타입의 삭제, 새로운 Enum 타입의 추가가 제한적이다.
+
+![](https://github.com/dididiri1/kotlin-springboot/blob/main/study/images/22_01.png?raw=true)
+
+### 정리
+1. Type을 문자열로 관리 할때는 몇 가지 단점이 존재한다.
+2. Enum Class를 활용하면 손쉽게 단점을 제거할 수 있다.
+3. Enum Class를 Entity에 사용할 때는 @Enumerated(EnumType.String) 을 잘 활용해 주어야 한다.
