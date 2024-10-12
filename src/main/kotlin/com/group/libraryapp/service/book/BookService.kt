@@ -22,7 +22,7 @@ class BookService(
 
     @Transactional
     fun saveBook(request: BookRequest) {
-        val book = Book(request.name)
+        val book = Book(request.name, request.type)
         bookRepository.save(book)
     }
 
@@ -30,7 +30,7 @@ class BookService(
     fun loanBook(request: BookLoanRequest) {
         val book = bookRepository.findByName(request.bookName) ?: fail()
         if (userLoanHistoryRepository.findByBookNameAndIsReturn(request.bookName, false) != null) {
-            throw java.lang.IllegalArgumentException("진작 대출되어 있는 책입니다.")
+            throw IllegalArgumentException("진작 대출되어 있는 책입니다.")
         }
 
         val user = userRepository.findByName(request.userName) ?: fail()

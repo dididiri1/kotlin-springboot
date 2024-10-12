@@ -1422,3 +1422,59 @@ Spring Boot는 @RestController 어노테이션이 달린 경우 Jackson 라이�
 ```
 implementation 'com.fasterxml.jackson.module:jackson-module-kotlin:2.14.2'
 ```
+
+## 21강. 책의 분야 추가하기
+
+### 3 첫 번쩨 요구사항 추가하기 - 책의 분야
+1. type, Status 등을 서버에서 관리하는 방법들을 살펴보고 장단점을 이해한다.
+2. Test Fixture의 필용성을 느끼고 구성하는 방버을 알아본다.
+3. Kotlin에서 Enum + JPA + Spring Boot를 활용하는 방법을 알아본다.
+
+## 요구사항1 확인
+
+### 책 등록 요수사항 추가
+- 책을 등록할 때에 '분야'를 선택해야 한다.
+  - 분야에는 5가지 분야가 있다 - 컴퓨터 / 경제 / 사회 / 언어 / 과학
+
+#### Test Fixture - 정적 메소드 만들기
+- 이런 패턴을 어려운 말로 Object Model 패턴이라고도 한다.
+```
+import java.lang.IllegalArgumentException
+import javax.persistence.Entity
+import javax.persistence.GeneratedValue
+import javax.persistence.GenerationType
+import javax.persistence.Id
+import javax.persistence.Table
+
+@Entity
+class Book(
+    val name: String,
+
+    val type: String,
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    val id: Long? = null,
+) {
+
+    init {
+        if (name.isBlank()) {
+            throw IllegalArgumentException("이름은 비어 있을 수 없습니다")
+        }
+    }
+
+    companion object {
+        fun fixture(
+            name: String = "책 이름",
+            type: String = "COMPUTER",
+            id: Long? = null,
+        ): Book {
+            return Book(
+                name = name,
+                type = type,
+                id = id,
+            )
+        }
+    }
+}
+```
