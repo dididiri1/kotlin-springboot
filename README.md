@@ -1564,8 +1564,17 @@ class Book(
 > soft 방식 : 실제 데이터베이스에는 데이터가 남아있지만 시스템상으로는 삭제된 방식
 
 ### flag 필드 방식 - Boolean 필드 (FLAG)
-![](https://github.com/dididiri1/kotlin-springboot/blob/main/study/images/23_01.png?raw=true)
-
+```
+@Entity
+class User(
+  val name: String,
+  val isActive: Boolean,
+  val isDeleted: Boolean,
+  @Id
+  @GeneratedValue(strategy = GenerationType.IDENTITY)
+  val id: Long? = null,
+)
+```
 
 ### Boolean이 2개가 되면 문제가 생긴다!
 #### 문제 1. Boolean이 2개 있기 때문에 코드가 이해하기 어려워진다.
@@ -1587,10 +1596,22 @@ class Book(
 2. 정확하게 유의미한 상태만 나타낼 수 있기 때문에 코드의 유지보수가 용이해진다.
 
 
-![](https://github.com/dididiri1/kotlin-springboot/blob/main/study/images/22_02.png?raw=true)
-
-
-![](https://github.com/dididiri1/kotlin-springboot/blob/main/study/images/22_03.png?raw=true)
+```
+@Entity
+class User(
+  val name: String,
+  @Enumerated(STRING)
+  val status: UserStatus,
+  @Id
+  @GeneratedValue(strategy = GenerationType.IDENTITY)
+  val id: Long? = null,
+)
+```
+```
+enum class UserStatus {
+  ACTIVE,
+IN_ACTIVE, }
+```
 
 ### UserLoanHistory - Enum 변경
 
