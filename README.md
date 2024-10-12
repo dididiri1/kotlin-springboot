@@ -1234,3 +1234,191 @@ data class UserResponse( // dto 전체적으로 data 추가
 > toString 등을 디버깅 과정이나 테스트 과정에서 사용할 수도 있다.
 > 그래서 DTO를 항상 그 취지에 맞게 data 클래스로 만들어주는 편이다. 
 
+## 19. Controller 계층을 Kotlin으로 변경하기
+
+#### Java
+```
+import com.group.libraryapp.dto.book.request.BookLoanRequest;
+import com.group.libraryapp.dto.book.request.BookRequest;
+import com.group.libraryapp.dto.book.request.BookReturnRequest;
+import com.group.libraryapp.service.book.BookService;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RestController;
+
+@RestController
+public class BookController {
+
+  private final BookService bookService;
+
+  public BookController(BookService bookService) {
+    this.bookService = bookService;
+  }
+
+  @PostMapping("/book")
+  public void saveBook(@RequestBody BookRequest request) {
+    bookService.saveBook(request);
+  }
+
+  @PostMapping("/book/loan")
+  public void loanBook(@RequestBody BookLoanRequest request) {
+    bookService.loanBook(request);
+  }
+
+  @PutMapping("/book/return")
+  public void returnBook(@RequestBody BookReturnRequest request) {
+    bookService.returnBook(request);
+  }
+
+}
+```
+
+#### Kotlin
+```
+import com.group.libraryapp.dto.book.request.BookLoanRequest
+import com.group.libraryapp.dto.book.request.BookRequest
+import com.group.libraryapp.dto.book.request.BookReturnRequest
+import com.group.libraryapp.service.book.BookService
+import org.springframework.web.bind.annotation.PostMapping
+import org.springframework.web.bind.annotation.PutMapping
+import org.springframework.web.bind.annotation.RequestBody
+import org.springframework.web.bind.annotation.RestController
+
+@RestController
+class BookController(
+    private val bookService: BookService,
+) {
+
+    @PostMapping("/book")
+    fun saveBook(@RequestBody request: BookRequest) {
+        bookService.saveBook(request)
+    }
+
+    @PostMapping("/book/loan")
+    fun loanBook(@RequestBody request: BookLoanRequest) {
+        bookService.loanBook(request)
+    }
+
+    @PutMapping("/book/return")
+    fun returnBook(@RequestBody request: BookReturnRequest) {
+        bookService.returnBook(request)
+    }
+
+}
+```
+
+코틀린은 함수문법에서 Block Body 쓰지 않고 = 도 가능
+```
+    @GetMapping("/user")
+    fun getUser() : List<UserResponse> = userService.getUsers()
+    
+```
+
+#### Java
+```
+import com.group.libraryapp.dto.user.request.UserCreateRequest;
+import com.group.libraryapp.dto.user.request.UserUpdateRequest;
+import com.group.libraryapp.dto.user.response.UserResponse;
+import com.group.libraryapp.service.user.UserService;
+import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
+
+@RestController
+public class UserController {
+
+  private final UserService userService;
+
+  public UserController(UserService userService) {
+    this.userService = userService;
+  }
+
+  @PostMapping("/user")
+  public void saveUser(@RequestBody UserCreateRequest request) {
+    userService.saveUser(request);
+  }
+
+  @GetMapping("/user")
+  public List<UserResponse> getUsers() {
+    return userService.getUsers();
+  }
+
+  @PutMapping("/user")
+  public void updateUserName(@RequestBody UserUpdateRequest request) {
+    userService.updateUserName(request);
+  }
+
+  @DeleteMapping("/user")
+  public void deleteUser(@RequestParam String name) {
+    userService.deleteUser(name);
+  }
+
+}
+
+```
+
+#### Kotlin
+```
+import com.group.libraryapp.dto.user.request.UserCreateRequest
+import com.group.libraryapp.dto.user.request.UserUpdateRequest
+import com.group.libraryapp.dto.user.response.UserResponse
+import com.group.libraryapp.service.user.UserService
+import org.springframework.web.bind.annotation.DeleteMapping
+import org.springframework.web.bind.annotation.GetMapping
+import org.springframework.web.bind.annotation.PostMapping
+import org.springframework.web.bind.annotation.PutMapping
+import org.springframework.web.bind.annotation.RequestBody
+import org.springframework.web.bind.annotation.RequestParam
+import org.springframework.web.bind.annotation.RestController
+
+@RestController
+class UserController(
+
+    private val userService: UserService,
+) {
+
+    @PostMapping("/user")
+    fun saveUser(@RequestBody request: UserCreateRequest) {
+        userService.saveUser(request)
+    }
+
+    @GetMapping("/user")
+    fun getUser() : List<UserResponse> {
+        return userService.getUsers()
+    }
+
+    @PutMapping("/user")
+    fun updateUserName(@RequestBody request: UserUpdateRequest) {
+        userService.updateUserName(request)
+    }
+
+    @DeleteMapping("/user")
+    fun deleteUser(@RequestParam name: String) {
+        userService.deleteUser(name)
+    }
+
+}
+```
+
+#### Kotlin
+```
+import org.springframework.boot.autoconfigure.SpringBootApplication
+import org.springframework.boot.runApplication
+
+@SpringBootApplication
+class LibraryAppApplication
+
+fun main(args: Array<String>) {
+    runApplication<LibraryAppApplication>(*args)
+}
+```
+
+Spring Boot는 @RestController 어노테이션이 달린 경우 Jackson 라이브러리가 직렬화와 역직렬화를 담당하게 된다.
+변환 과정에서는 큰 문제는 없지만 스프링부트와 Kotlin을 함께 사용하게 된다면 달라진다.
+의존성 추가로 해결!
+
+#### build.gradle
+```
+implementation 'com.fasterxml.jackson.module:jackson-module-kotlin:2.14.2'
+```
