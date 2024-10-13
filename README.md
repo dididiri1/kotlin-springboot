@@ -1880,4 +1880,64 @@ data class BookHistoryResponse(
 )
 ```
 
+## 26강. 유저 대출 현황 보여주기 - 테스트 코드 개발
+### 무엇을 검증해야 할까?!
+1. 사용자가 지금까지 한 번도 책을 빌리지 않은 경우 API 응답에 잘 포함되어 있어야 한다.
+2. 사용자가 책을 빌리고 아직 반납하지 않은 경우 isReturn 값이 false로 잘 들어 있어야 한다.
+3. 사용자가 책을 빌리고 반납한 경우 isRetrun 값이 true로 잘 들어 있어야 한다.
+4. 사용자가 책을 여려권 빌렸는데, 반납을 한 책도 있고 하지 않은 책도 있는 경우  
+   중첩된 리스트에 여러 권이 정상적으로 들어가 있어야 한다.
 
+```
+@SpringBootTest
+class UserServiceTest @Autowired constructor(
+
+    private val userRepository: UserRepository,
+    private val userService: UserService,
+    private val userLoanHistoryRepository: UserLoanHistoryRepository,
+) {
+    
+    ```
+    
+    @Test
+    @DisplayName("대출 기록이 없는 유저도 응답에 포함된다.")
+    fun getUserLoanHistoriesTest() {
+        // given
+        userRepository.save(User("A", null))
+
+        // when
+        val results = userService.getUserLoanHistories()
+
+        // then
+        assertThat(results).hasSize(1)
+        assertThat(results[0].name).isEqualTo("A")
+        assertThat(results[0].books).isEmpty()
+
+    }
+
+    @Test
+    @DisplayName("대출 기록이 많은 유저의 응답이 정상 동작한다")
+    fun getUserLoanHistoriesTest2() {
+        // given
+        val savedUser = userRepository.save(User("A", null))
+        userLoanHistoryRepository.saveAll(listOf(
+            UserLoanHistory.fixture(savedUser, "책1", UserLoanStatus.LOANED),
+            UserLoanHistory.fixture(savedUser, "책2", UserLoanStatus.LOANED),
+            UserLoanHistory.fixture(savedUser, "책3", UserLoanStatus.RETURNED),
+        ))
+
+        // when
+        val results = userService.getUserLoanHistories()
+
+        // then
+        assertThat(results).hasSize(1)
+        assertThat(results[0].name).isEqualTo("A")
+        assertThat(results[0].books).hasSize(3)
+        assertThat(results[0].books).extracting("name")
+            .containsExactlyInAnyOrder("책1", "책2", "책3")
+        assertThat(results[0].books).extracting("isReturn")
+            .containsExactlyInAnyOrder(false, false, true)
+
+    }
+}
+```
