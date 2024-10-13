@@ -1758,3 +1758,126 @@ class UserLoanHistory(
     }
 }
 ```
+
+## 25강. 유저 대출 현황 보여주기 - 프로덕션 코드 개발
+1. join 쿼리의 종류와 차이점을 이해한다.
+2. JPA N + 1 문제가 무엇이고 발생하는 원인을 이해한다.
+3. N + 1 문제를 해결하기 위한 방법을 이해하고 할용할 수 있다.
+4. 새로운 API를 만들 떄 생길 수 았는 고민 포인트를 이해하고 적절한 감을 잡을 수 있다.
+
+### 요구사항 2 확인
+#### 유저 대출 현황 화면
+- 유저 대출 현황을 보여준다.
+
+![](https://github.com/dididiri1/kotlin-springboot/blob/main/study/images/25_01.png?raw=true)
+
+- 과거에 대출했던 기록과 현재 대출 중인 기록을 보여준다.
+- 아무런 기록이 없는 유저도 화면에 보여져야 한다.
+이 요구사항을 달성하기 위한 클라이언트는 먼저 개발이 끝나 있는 상황이다.
+클라이언트가 원하는 스펙에 맞춰 API를 만들어 주는 것이다.
+
+![](https://github.com/dididiri1/kotlin-springboot/blob/main/study/images/25_02.png?raw=true)
+
+### Controller를 찾을 수 있는 몇 가지 방법
+
+![](https://github.com/dididiri1/kotlin-springboot/blob/main/study/images/25_03.png?raw=true)
+
+#### 1. IntelliJ 전체 검색
+[전체 검색 단축키]
+MAC : Command + Shift + F 
+Windows / Linux : Ctrl + Shift + F
+
+#### 2. API full URL을 모아두는 Kotlin File 사용
+
+```
+@RestController
+class UserController(
+
+    private val userService: UserService,
+) {
+
+    @PostMapping(USER)
+    fun saveUser(@RequestBody request: UserCreateRequest) {
+        userService.saveUser(request)
+    }
+
+    @GetMapping("/user")
+    fun getUser() : List<UserResponse> {
+        return userService.getUsers()
+    }
+    
+    ```
+}
+```
+
+- UrlConstants.kt
+```
+package com.group.libraryapp.controller
+
+const val USER = "/user"
+```
+
+
+#### 3. IntelliJ 유료 버전의 Endpoints 사용색
+
+![](https://github.com/dididiri1/kotlin-springboot/blob/main/study/images/25_04.png?raw=true)
+
+```
+@RestController
+class UserController(
+
+    private val userService: UserService,
+) {
+
+    @GetMapping("/user/loan")
+    fun getUserLoanHistories(): List<UserLoanHistoryResponse> {
+        return userService.getUserLoanHistories()
+    }
+    
+    ```
+}
+```
+
+```
+@Service
+class UserService(
+
+    private val userRepository: UserRepository,
+  
+) {
+
+    ```
+
+    @Transactional(readOnly = true)
+    fun getUserLoanHistories(): List<UserLoanHistoryResponse> {
+        return userRepository.findAll().map { user ->
+            UserLoanHistoryResponse(
+                name = user.name,
+                books = user.userLoanHistories.map { history ->
+                    BookHistoryResponse(
+                        name = history.bookName,
+                        isReturn = history.status == UserLoanStatus.RETURNED
+                    )
+                }
+            )
+        }
+    }
+
+}
+```
+
+```
+package com.group.libraryapp.dto.user.response
+
+class UserLoanHistoryResponse(
+    val name: String,
+    val books: List<BookHistoryResponse>,
+)
+
+data class BookHistoryResponse(
+    val name: String,
+    val isReturn: Boolean,
+)
+```
+
+
