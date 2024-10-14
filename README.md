@@ -1941,3 +1941,32 @@ class UserServiceTest @Autowired constructor(
     }
 }
 ```
+
+## 27강. N+1 문제와 N+1 문제가 발생하는 이유
+### N + 1 문제를 해결하는 방법
+SQL의 join query를 알아야 한다!
+
+
+## 28강. SQL join에 대해 알아보자
+
+- 쿼리 한 번으로 두 테이블의 결과를 한 번에 보는 법!
+```
+select * from user 
+join user_loan_history
+on user.id = user_loan_history.user_id
+```
+
+- join을 사용할 떄 '별칭'을 줄 수도 있다. 
+```
+select * from user u 
+join user_loan_history ulh
+on u.id = ulh.user_id
+```
+
+- left join
+```
+select * from user u
+left join user_loan_history ulh
+on u.id = ulh.user_id
+```
+
