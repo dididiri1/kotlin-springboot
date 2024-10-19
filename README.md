@@ -2078,4 +2078,141 @@ Hibernate:
         userloanhi0_.user_id=?
 ```
 
+## 30강. 조금 더 깔끔한 코드로 변경하기
+### DTO의 정적 팩토리 메소드를 써서 리팩토링
+
+```
+    @Transactional(readOnly = true)
+    fun getUserLoanHistories(): List<UserLoanHistoryResponse> {
+        return userRepository.findAllWithHistories().map { user ->
+            UserLoanHistoryResponse(
+                name = user.name,
+                books = user.userLoanHistories.map { history ->
+                    BookHistoryResponse(
+                        name = history.bookName,
+                        isReturn = history.status == UserLoanStatus.RETURNED
+                    )
+                }
+            )
+        }
+    }
+```
+```
+class UserLoanHistoryResponse(
+    val name: String,
+    val books: List<BookHistoryResponse>,
+)
+
+data class BookHistoryResponse(
+    val name: String,
+    val isReturn: Boolean,
+) {
+    companion object {
+        fun of(history: UserLoanHistory): BookHistoryResponse {
+            return BookHistoryResponse(
+                name = history.bookName,
+                isReturn = history.status == UserLoanStatus.RETURNED
+            )
+        }
+    }
+}
+```
+
+#### 리펙토링 1
+```
+@Transactional(readOnly = true)
+    fun getUserLoanHistories(): List<UserLoanHistoryResponse> {
+        return userRepository.findAllWithHistories().map { user ->
+            UserLoanHistoryResponse(
+                name = user.name,
+                books = user.userLoanHistories.map { history ->
+                    BookHistoryResponse.of(history)
+                }
+            )
+        }
+    }
+```
+
+#### 리펙토링 2
+```
+    @Transactional(readOnly = true)
+    fun getUserLoanHistories(): List<UserLoanHistoryResponse> {
+        return userRepository.findAllWithHistories().map { user ->
+            UserLoanHistoryResponse(
+                name = user.name,
+                books = user.userLoanHistories.map(BookHistoryResponse::of)
+            )
+        }
+    }
+```
+```
+@Entity
+class UserLoanHistory(
+
+    @ManyToOne
+    val user: User,
+
+    val bookName: String,
+
+    var status: UserLoanStatus = UserLoanStatus.LOANED,
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    val id: Long? = null,
+) {
+
+    val isReturn: Boolean
+        get() = this.status == UserLoanStatus.RETURNED
+        
+    ```    
+```
+
+```
+    companion object {
+        fun of(history: UserLoanHistory): BookHistoryResponse {
+            return BookHistoryResponse(
+                name = history.bookName,
+                isReturn = history.isReturn
+            )
+        }
+    }
+```
+
+#### 나머지 부분도 정석 팩토리 메소드로 리펙토링
+```
+    @Transactional(readOnly = true)
+    fun getUserLoanHistories(): List<UserLoanHistoryResponse> {
+        return userRepository.findAllWithHistories().map { user ->
+            UserLoanHistoryResponse(
+                name = user.name,
+                books = user.userLoanHistories.map(BookHistoryResponse::of)
+            )
+        }
+    }
+```
+
+```
+class UserLoanHistoryResponse(
+    val name: String,
+    val books: List<BookHistoryResponse>,
+) {
+    companion object {
+        fun of(user: User): UserLoanHistoryResponse {
+            return UserLoanHistoryResponse(
+                name = user.name,
+                books = user.userLoanHistories.map(BookHistoryResponse::of)
+            )
+        }
+    }
+}
+
+```
+
+```
+    @Transactional(readOnly = true)
+    fun getUserLoanHistories(): List<UserLoanHistoryResponse> {
+        return userRepository.findAllWithHistories().map(UserLoanHistoryResponse::of)
+        
+    }
+```
 
