@@ -1970,3 +1970,112 @@ left join user_loan_history ulh
 on u.id = ulh.user_id
 ```
 
+## 29강. N+1 문제를 해결하는 방법! fetch join
+
+### N+1 발생
+```
+interface UserRepository : JpaRepository<User, Long> {
+    
+    ```
+    
+    @Query("SELECT DISTINCT u FROM User u LEFT JOIN u.userLoanHistories")
+    fun findAllWithHistories(): List<User>
+    
+    ```
+}
+```
+
+```
+Hibernate: 
+    select
+        distinct user0_.id as id1_1_,
+        user0_.age as age2_1_,
+        user0_.name as name3_1_ 
+    from
+        user user0_ 
+    left outer join
+        user_loan_history userloanhi1_ 
+            on user0_.id=userloanhi1_.user_id
+Hibernate: 
+    select
+        userloanhi0_.user_id as user_id4_2_0_,
+        userloanhi0_.id as id1_2_0_,
+        userloanhi0_.id as id1_2_1_,
+        userloanhi0_.book_name as book_nam2_2_1_,
+        userloanhi0_.status as status3_2_1_,
+        userloanhi0_.user_id as user_id4_2_1_ 
+    from
+        user_loan_history userloanhi0_ 
+    where
+        userloanhi0_.user_id=?
+Hibernate: 
+    select
+        user0_.id as id1_1_,
+        user0_.age as age2_1_,
+        user0_.name as name3_1_ 
+    from
+        user user0_
+Hibernate: 
+    select
+        userloanhi0_.user_id as user_id4_2_0_,
+        userloanhi0_.id as id1_2_0_,
+        userloanhi0_.id as id1_2_1_,
+        userloanhi0_.book_name as book_nam2_2_1_,
+        userloanhi0_.status as status3_2_1_,
+        userloanhi0_.user_id as user_id4_2_1_ 
+    from
+        user_loan_history userloanhi0_ 
+    where
+        userloanhi0_.user_id=?
+```
+#### fetch join
+```
+interface UserRepository : JpaRepository<User, Long> {
+    
+    ```
+    
+    @Query("SELECT DISTINCT u FROM User u LEFT JOIN FETCH u.userLoanHistories")
+    fun findAllWithHistories(): List<User>
+    
+    ```
+}
+```
+```
+Hibernate: 
+    select
+        distinct user0_.id as id1_1_0_,
+        userloanhi1_.id as id1_2_1_,
+        user0_.age as age2_1_0_,
+        user0_.name as name3_1_0_,
+        userloanhi1_.book_name as book_nam2_2_1_,
+        userloanhi1_.status as status3_2_1_,
+        userloanhi1_.user_id as user_id4_2_1_,
+        userloanhi1_.user_id as user_id4_2_0__,
+        userloanhi1_.id as id1_2_0__ 
+    from
+        user user0_ 
+    left outer join
+        user_loan_history userloanhi1_ 
+            on user0_.id=userloanhi1_.user_id
+Hibernate: 
+    select
+        user0_.id as id1_1_,
+        user0_.age as age2_1_,
+        user0_.name as name3_1_ 
+    from
+        user user0_
+Hibernate: 
+    select
+        userloanhi0_.user_id as user_id4_2_0_,
+        userloanhi0_.id as id1_2_0_,
+        userloanhi0_.id as id1_2_1_,
+        userloanhi0_.book_name as book_nam2_2_1_,
+        userloanhi0_.status as status3_2_1_,
+        userloanhi0_.user_id as user_id4_2_1_ 
+    from
+        user_loan_history userloanhi0_ 
+    where
+        userloanhi0_.user_id=?
+```
+
+
