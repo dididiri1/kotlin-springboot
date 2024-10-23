@@ -2275,3 +2275,116 @@ class BookStatResponse(
 > result에 넣어주는 로직을 넣은 다음에 나머지 부분을 모두 지워줄 수 있다.
 > NULL 관련된 처리들을 사용하면 전 코드에 길었던 if-else을 깔끔히 만들수 있다.
 
+## 33강. 책 통계 보여주기 - 테스트 코드 개발과 리팩토링
+
+```
+    @Test
+    @DisplayName("분야별 책 권수를 정상 확인한다")
+    fun getBookStatisticsTest() {
+        // given
+        bookRepository.saveAll(listOf(
+            Book.fixture("A", BookType.COMPUTER),
+            Book.fixture("B", BookType.COMPUTER),
+            Book.fixture("C", BookType.SCIENCE),
+        ))
+
+
+        // when
+        val results = bookService.getBookStatistics()
+
+        // then
+        assertThat(results).hasSize(2)
+        val computerDto = results.first { result -> result.type == BookType.COMPUTER }
+        assertThat(computerDto.count).isEqualTo(2)
+
+        val scienceDto = results.first { result -> result.type == BookType.SCIENCE }
+        assertThat(scienceDto.count).isEqualTo(1)
+    }
+```
+
+### 조금더 깔금하게 테스트 코드 관리 
+```
+@Test
+    @DisplayName("분야별 책 권수를 정상 확인한다")
+    fun getBookStatisticsTest() {
+        // given
+        bookRepository.saveAll(listOf(
+            Book.fixture("A", BookType.COMPUTER),
+            Book.fixture("B", BookType.COMPUTER),
+            Book.fixture("C", BookType.SCIENCE),
+        ))
+
+
+        // when
+        val results = bookService.getBookStatistics()
+
+        // then
+        assertThat(results).hasSize(2)
+        assertCount(results, BookType.COMPUTER, 2)
+        assertCount(results, BookType.SCIENCE, 1)
+    }
+
+    private fun assertCount(results: List<BookStatResponse>, type: BookType, count: Int) {
+        assertThat(results.first { result -> result.type == type }.count).isEqualTo(count)
+    }
+```
+
+### 기존 코드
+```
+class BookStatResponse(
+    val type: BookType,
+    var count: Int,
+) {
+    fun plusOne() {
+        count++
+    }
+}
+
+@Service
+class BookService(
+        
+    ```
+    
+    ) {
+     
+    ```
+    
+    @Transactional(readOnly = true)
+    fun getBookStatistics(): List<BookStatResponse> {
+        val results = mutableListOf<BookStatResponse>()
+        val books = bookRepository.findAll()
+        for (book in books) {
+            results.firstOrNull { dto -> book.type == dto.type }?.plusOne()
+                ?: results.add(BookStatResponse(book.type, 1))
+        }
+        return results
+    }
+    
+```
+
+### 프로덕션 코드 리펙토링 - group by
+- 함수형 프로그래밍을 사용해서 리팩토링
+```
+class BookStatResponse(
+    val type: BookType,
+    val count: Int,
+) 
+
+@Service
+class BookService(
+        
+    ```
+    
+    ) {
+     
+    ```
+    
+    @Transactional(readOnly = true)
+    fun getBookStatistics(): List<BookStatResponse> {
+        return bookRepository.findAll() // List<Book>
+            .groupBy { book -> book.type } // Map<BookType, List<Book>>
+            .map { (type, book) -> BookStatResponse(type, book.size) } // List<BookStatResponse>
+    }
+    
+```
+
