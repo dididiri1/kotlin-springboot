@@ -2388,3 +2388,45 @@ class BookService(
     
 ```
 
+## 35강. 애플리케이션 대신 DB로 기능 구현하기
+
+### 대출 권수 - 기존과 어떤 차이가 있을까?
+```
+@Transactional(readOnly = true)
+fun countLoanedBook(): Int {
+   return userLoanHistoryRepository.findAllByStatus(UserLoanStatus.LOANED).size
+}
+```
+
+### Count - 리팩토링
+- DB로부터 숫자를 가져온다
+- 적절히 타입을 변환해준다. Long -> int 로 변경
+```
+@Transactional(readOnly = true)
+fun countLoanedBook(): Int {
+   return userLoanHistoryRepository.countByStatus(UserLoanStatus.LOANED).toInt()
+}
+```
+
+### 기존 코드
+```
+    @Transactional(readOnly = true)
+    fun getBookStatistics(): List<BookStatResponse> {
+        return bookRepository.findAll() // List<Book>
+            .groupBy { book -> book.type } // Map<BookType, List<Book>>
+            .map { (type, book) -> BookStatResponse(type, book.size) } // List<BookStatResponse>
+    }
+```
+
+### 변경후 코드 - JPQL
+- DB로부터 숫자를 가져온다
+- 적절히 타입을 변환해준다. Long -> int 로 변경
+```
+@Query("SELECT NEW com.group.libraryapp.dto.book.request.reponse.BookStatResponse(b.type, COUNT(b.id)) FROM Book b GROUP BY b.type")
+fun getStats(): List<BookStatResponse>
+```
+
+```
+
+```
+
