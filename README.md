@@ -2427,6 +2427,45 @@ fun getStats(): List<BookStatResponse>
 ```
 
 ```
-
+    @Transactional(readOnly = true)
+    fun getBookStatistics(): List<BookStatResponse> {
+        return bookRepository.getStats()
+    }
 ```
 
+## 37강. Querydsl 도입하기
+- JPQL과 Querydsl의 장단점을 이해할 수 있다.
+- Querydsl을 Kotlin + Spring Boot와 함께 사용할 수 있다.
+- Querydsl을 활용해 기존에 존재하던 Repository를 리팩토링 할 수 있다.
+
+### JPQL은 무슨 단점이 있을까?
+- 문자열이기 떄문에 '버그'를 찾기가 어렵다.
+- JPQL 문법이 일반 SQL와 조금 달라 복잡한 쿼리를 작성할 때마다 찾아보아야 한다.
+``` 
+@Query("SELECT DISTINCT u FROM User u LEFT JOIN FETCH u.userLoanHistories")
+fun findAllWithHistories(): List<User>
+```
+
+### Spring Data JPA는 무슨 단점이 있을까?
+- 조건이 복잡한 동적쿼리를 작성할 때 함수가 계속해서 늘어난다.
+- 프로덕션 코드가 변경됬을때 도메인의 필드가 변경되면 프로덕션 코드 변경에 취약하다.
+- 동적 쿼리 작성이 어렵다.
+```
+fun findByName(name: String) : User?
+
+fun findByNameAndAge(userName: String, age: Int?): User?
+```
+
+### 이런 단점을 보완하기 위해 Querydsl이 등장!
+Sprung Data JPA와 Querydsl을 함께 사용하며 서로를 보완해야 한다.
+
+```
+fun findAll(name: String): List<User> {
+  return queryFactory.select(user)
+     .from(user)
+     .where(
+       user.name.eq(name)
+     )
+     .fetch()  
+}
+```
