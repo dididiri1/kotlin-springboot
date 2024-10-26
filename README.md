@@ -2469,3 +2469,128 @@ fun findAll(name: String): List<User> {
      .fetch()  
 }
 ```
+
+## 38강. Querydsl 사용하기 - 첫 번째 방법
+
+### Querydsl을 적용한 새로운 Repository 구조 
+
+먼저, 기존 Repository 구조에서 UserRepositoryCustom interface를 추가한다.
+UserRepositoryCustom은 UserRepository와 같은 패키지에 넣어준다.
+
+![](https://github.com/dididiri1/kotlin-springboot/blob/main/study/images/38_01.png?raw=true)
+
+```
+interface UserRepositoryCustom {
+
+}
+```
+
+```
+interface UserRepository : JpaRepository<User, Long>, UserRepositoryCustom {
+  
+  fun findByName(userName: String): User?
+  
+}
+```
+
+![](https://github.com/dididiri1/kotlin-springboot/blob/main/study/images/38_02.png?raw=true)
+
+```
+class UserRepositoryCustomImpl : UserRepositoryCustom {
+
+}
+```
+이제 다음과 같이 JPAQueryFactory를 스프링 Bean으로 등록 해준다. 이 JPAQueryFactory를  
+활용해서 querydsl 코드를 작성할 예정이다. QuerydslConfig는   
+com.group.libraryapp.config 패지키 안에 만들어 준다.
+```
+@Configuration
+class QuerydslConfig(
+private val em: EntityManager, ){
+  @Bean
+  fun querydsl(): JPAQueryFactory {
+    return JPAQueryFactory(em)
+  }
+}
+```
+
+이제 UserRepositoryCustom에 필요한 함수를 입력하고, UserRepositoryCustomImpl에
+querydsl을 구현하면 된다.
+
+
+```
+class UserRepositoryCustomImpl(
+  private val queryFactory: JPAQueryFactory,
+) : UserRepositoryCustom {
+  override fun findAllWithHistories(): List<User> {
+    return queryFactory.select(user).distinct()
+      .from(user)
+      .leftJoin(userLoanHistory).on(userLoanHistory.user.id.eq(user.id)).fetchJoin()
+      .fetch()
+} }
+```
+
+### 장점
+서비스단에서 UserRepository 하나만 사용하면 된다.
+
+### 단점
+인터페이스와 클래스를 항상 같이 만들어 주어야 하는 것이 부담이고 여러모로 번거롭다.
+
+## 39강. Querydsl 사용하기 - 두 번째 방법
+
+이번 시간에는 지난 시간에 했던 방법과 다른 방법을 활용하여 Querydsl을 사용할 것이다.  
+먼저 BookQuerydslRepository를 만들자. Book.kt가 위치한 doamin 패키지에 만들어도   
+되지만 이번에는 com.group.libraryapp.repository.book 패키지를 만들어 그 안에 넣어 주겠다.  
+
+```
+@Component
+class BookQuerydslRepository(
+
+  private val queryFactory: JPAQueryFactory,
+   
+){
+
+}
+```
+JPAQueryFactory 를 주입 받을 수 있도록 @Componect 어노테이션을 붙여주자! @Repository  
+를 붙이더라도 상관 없다.
+
+### JPQL
+```
+@Query("SELECT NEW com.group.libraryapp.dto.book.request.reponse.BookStatResponse(b.type, COUNT(b.id)) FROM Book b GROUP BY b.type")
+fun getStats(): List<BookStatResponse>
+```
+
+### QueryDSL
+```
+fun getStats(): List<BookStatResponse> {
+    return queryFactory
+      .select(
+        Projections.constructor(
+          BookStatResponse::class.java,
+          book.type,
+          book.id.count(),
+        )
+      )
+      .from(book)
+      .groupBy(book.type)
+      .fetch() 
+}
+```
+- 이번엔 Projections.constructor() 를 사용하였다.
+  - 주어진 DTO의 생성자를 호출한다는 뜻이다.
+  - Projections.constructor() 안에는 세 가지 파라미터가 들어갔다.  
+    BookStatResponse::class.java book.type book.id.count()
+- sselect from을 포함해 SQL으로 바꾸면 다음과 같다.
+  - select book.type, count(book.id) from book
+- groupBy(book.type) 은 SQL로 다음과 같다.
+  - group by type
+
+### 2번째 방법의 장점
+- 클래스만 바로 만들면 되어 간결하다.
+### 2번째 방법의 단점
+- 필요에 따라 두 Repository를 모두 불러와야 한다.
+
+### 어떤 방식이 더 좋을까?
+개인적으로는 지금 방법을 선호한다.  
+**멀티 모듈**을 사용하는 경우 모듈 별로만 Repository를 쓰는 경우가 많기 때문
