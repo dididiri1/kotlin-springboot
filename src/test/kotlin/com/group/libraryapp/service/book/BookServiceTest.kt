@@ -1,6 +1,7 @@
 package com.group.libraryapp.service.book
 
 
+import com.group.libraryapp.CleaningSpringBootTest
 import com.group.libraryapp.domain.book.Book
 import com.group.libraryapp.domain.book.BookRepository
 import com.group.libraryapp.domain.book.BookType
@@ -26,7 +27,7 @@ class BookServiceTest @Autowired constructor(
     private val bookService: BookService,
     private val bookRepository: BookRepository,
     private val userLoanHistoryRepository: UserLoanHistoryRepository,
-) {
+) : CleaningSpringBootTest() {
     @Autowired
     private lateinit var userRepository: UserRepository
 

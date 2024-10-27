@@ -7,12 +7,14 @@ import com.group.libraryapp.domain.user.loanhistory.UserLoanHistoryRepository
 import com.group.libraryapp.domain.user.loanhistory.UserLoanStatus
 import com.group.libraryapp.dto.user.request.UserCreateRequest
 import com.group.libraryapp.dto.user.request.UserUpdateRequest
+import com.group.libraryapp.util.TxHelper
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.DisplayName
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
+import org.springframework.transaction.annotation.Transactional
 
 @SpringBootTest
 class UserServiceTest @Autowired constructor(
@@ -20,6 +22,7 @@ class UserServiceTest @Autowired constructor(
     private val userRepository: UserRepository,
     private val userService: UserService,
     private val userLoanHistoryRepository: UserLoanHistoryRepository,
+    private val txHelper: TxHelper,
 ) {
 
     @AfterEach
@@ -126,5 +129,20 @@ class UserServiceTest @Autowired constructor(
         assertThat(results[0].books).extracting("isReturn")
             .containsExactlyInAnyOrder(false, false, true)
 
+    }
+
+    @Transactional
+    @DisplayName("유저 1명과 책 2권을 저장하고 대출한다")
+    @Test
+    fun saveUserAndLoanTwoBooksTest () {
+        // when
+        userService.saveUserAndLoanTwoBooks()
+
+        // then
+        txHelper.exec {
+            val users = userRepository.findAll()
+            assertThat(users).hasSize(1)
+            assertThat(users[0].userLoanHistories).hasSize(2)
+        }
     }
 }
